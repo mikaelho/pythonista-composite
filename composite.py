@@ -263,7 +263,7 @@ if __name__ == '__main__':
   import console
   
   v = ImageView()
-  v.image = Image.named("background2.jpg")
+  v.image = Image.named("IMG_0419.JPG")
   #v.background_color = 'white'
   v.present('sheet')
   
@@ -274,10 +274,12 @@ if __name__ == '__main__':
   lbl_btn.flex = 'LRTB'
   
   lbl_btn.number_of_lines = 0
-  lbl_btn.text = "#1 - Click me, I'm ugly without margins"
+  lbl_btn.text = "#1 - Click me\n(ugly without margins)"
   lbl_btn.text_color = 'black'
   lbl_btn.alignment = ALIGN_RIGHT
   lbl_btn.background_color = 'lightgrey'
+  lbl_btn['Label'].border_color = 'black'
+  lbl_btn['Label'].border_width = 1
   def click_action(sender):
     console.hud_alert('Clicked', duration=0.5)
   lbl_btn.action = click_action 
@@ -311,12 +313,10 @@ if __name__ == '__main__':
   shadow_lbl.text_color = 'black'
   shadow_lbl.background_color = '#F29C50'
   shadow_lbl.set_drop_shadow('#D46247')
-  #shadow_lbl.corner_radius = 5
 
   v.add_subview(shadow_lbl)
   
   # Go fancy with BlurView
-  from BlurView import BlurView
   
   blur_lbl = Composite(Blur, Button, Label)
   blur_lbl.number_of_lines = 0
