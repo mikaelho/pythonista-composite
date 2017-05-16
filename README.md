@@ -90,4 +90,11 @@ All of the above examples are demonstrated in the end of the `composite.py` file
 
 Editable views like TextField do not work right.
 
-Other composable examples are highly welcome.
+Should include the vibrancy effect as well.
+
+Other composable examples are highly welcome, as issues or pull requests.
+
+Thanks to the following contributions on the Pythonista forum:
+
+* ObjC code for the [shadow settings](https://forum.omz-software.com/topic/1942/drop-shadow-behind-ui-view/15?page=2)
+* [BlurView](https://forum.omz-software.com/topic/2738/ui-gaussian-blur/4) code
