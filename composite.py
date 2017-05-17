@@ -301,6 +301,32 @@ if __name__ == '__main__':
 
   v.add_subview(lbl)
 
+  # Text field with a rectangular border
+
+  fld = Composite(Margins, TextField)
+  (fld.width, fld.height) = (150, 50)
+  fld.center = (v.width * 0.25, v.height * 0.5)
+  fld.text = '#5 - Editable'
+  fld.background_color = 'lightgrey'
+  
+  v.add_subview(fld)
+  
+  # Translated composite
+  
+  lbl = Composite(Margins, Label)
+  lbl.number_of_lines = 0
+  lbl.text = '#6 - Translated'
+  lbl.margin = (5, 10)
+  lbl.corner_radius = 10
+  lbl.size_to_fit()
+  lbl.center = (v.width * 0.75, v.height * 0.5)
+  lbl.flex = 'LRTB'     
+  lbl.text_color = 'black'
+  lbl.background_color = (1.0, 1.0, 1.0, 0.4)
+
+  lbl.transform = Transform.rotation(1)
+  
+  v.add_subview(lbl)
   
   # Drop shadow built in
   
