@@ -88,8 +88,6 @@ All of the above examples are demonstrated in the end of the `composite.py` file
 
 # To do
 
-Editable views like TextField do not work right.
-
 Should include the vibrancy effect as well.
 
 Other composable examples are highly welcome, as issues or pull requests.

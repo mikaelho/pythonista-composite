@@ -153,7 +153,7 @@ class Margins(SelfLayout):
   
   def __init__(self, margin=None, **kwargs):
     super().__init__(**kwargs)
-    self.touch_enabled = False
+    #self.touch_enabled = False
     self._margin = sn(top=5, right=5, bottom=5, left=5)
     if margin:
       self.margin = margin
@@ -230,7 +230,7 @@ class Blur(View):
   
   def __init__(self, style=SAME, *args, **kwargs):
     super().__init__(self, **kwargs)
-    self.touch_enabled = False
+    #self.touch_enabled = False
     self._style = style
     self.effect_view = None
     self.setup_effect_view()
@@ -300,6 +300,7 @@ if __name__ == '__main__':
   lbl.background_color = (1.0, 1.0, 1.0, 0.4)
 
   v.add_subview(lbl)
+
   
   # Drop shadow built in
   
