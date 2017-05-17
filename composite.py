@@ -311,11 +311,11 @@ if __name__ == '__main__':
   
   v.add_subview(fld)
   
-  # Translated composite
+  # Transformed composite
   
   lbl = Composite(Margins, Label)
   lbl.number_of_lines = 0
-  lbl.text = '#6 - Translated'
+  lbl.text = '#6 - Transformed'
   lbl.margin = (5, 10)
   lbl.corner_radius = 10
   lbl.size_to_fit()
