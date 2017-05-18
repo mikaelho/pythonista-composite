@@ -309,7 +309,7 @@ if __name__ == '__main__':
 
   v.add_subview(make_button_label(text="#1 - Click me\n(ugly without margins)"))
   v.add_subview(make_label(text='#2 - Size-to-fit label with margins and rounded corners'))
-  v.add_subview(make_text_field(.text='#5 - Editable'))
+  v.add_subview(make_text_field(text='#5 - Editable'))
   
   # Transformed composite
   
