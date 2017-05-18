@@ -96,10 +96,7 @@ class Container():
     child_lookup = {}
     previous = bottom_view
     for view_spec in views:
-      if isinstance(view_spec, View):
-        v = view_spec
-      else:
-        v = view_spec()
+      v = view_spec if isinstance(view_spec, View) else view_spec()
       self.stack.append(v)
       previous.add_subview(v)
       child_lookup[previous] = v
@@ -259,22 +256,13 @@ class Blur(View):
       self.setup_effect_view()
       
 
-if __name__ == '__main__':
-  import console
-  
-  v = ImageView()
-  v.image = Image.named("IMG_0419.JPG")
-  #v.background_color = 'white'
-  v.present('sheet')
-  
-  # Combine label with button
-  
+def make_button_label(text):
+  """Combine label with button"""
   lbl_btn = Composite(Button, Label)
   lbl_btn.center = (v.width * 0.25, v.height * 0.25)
   lbl_btn.flex = 'LRTB'
-  
   lbl_btn.number_of_lines = 0
-  lbl_btn.text = "#1 - Click me\n(ugly without margins)"
+  lbl_btn.text = text
   lbl_btn.text_color = 'black'
   lbl_btn.alignment = ALIGN_RIGHT
   lbl_btn.background_color = 'lightgrey'
@@ -282,15 +270,15 @@ if __name__ == '__main__':
   lbl_btn['Label'].border_width = 1
   def click_action(sender):
     console.hud_alert('Clicked', duration=0.5)
-  lbl_btn.action = click_action 
+  lbl_btn.action = click_action
+  return lbl_btn
 
-  v.add_subview(lbl_btn)
-  
-  # Combine label with some niceties
-  
+
+def make_label(text):
+  """Combine label with some niceties"""
   lbl = Composite(Margins, Label)
   lbl.number_of_lines = 0
-  lbl.text = '#2 - Size-to-fit label with margins and rounded corners'
+  lbl.text = text
   lbl.margin = (5, 10)
   lbl.corner_radius = 10
   lbl.size_to_fit()
@@ -298,18 +286,30 @@ if __name__ == '__main__':
   lbl.flex = 'LRTB'     
   lbl.text_color = 'black'
   lbl.background_color = (1.0, 1.0, 1.0, 0.4)
+  return lbl
 
-  v.add_subview(lbl)
 
-  # Text field with a rectangular border
-
+def make_text_field(text):
+   """Text field with a rectangular border"""
   fld = Composite(Margins, TextField)
   (fld.width, fld.height) = (150, 50)
   fld.center = (v.width * 0.25, v.height * 0.5)
   fld.text = '#5 - Editable'
   fld.background_color = 'lightgrey'
+  return fld
+
+
+if __name__ == '__main__':
+  import console
   
-  v.add_subview(fld)
+  v = ImageView()
+  v.image = Image.named("IMG_0419.JPG")
+  #v.background_color = 'white'
+  v.present('sheet')
+
+  v.add_subview(make_button_label(text="#1 - Click me\n(ugly without margins)"))
+  v.add_subview(make_label(text='#2 - Size-to-fit label with margins and rounded corners'))
+  v.add_subview(make_text_field(text='#5 - Editable'))
   
   # Transformed composite
   
