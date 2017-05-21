@@ -12,12 +12,19 @@ class Composite(View):
     """ Accepts view classes or instances as 
     parameters, followed by normal View keyword 
     parameters. Classes are instantiated with no 
-    arguments, instances are used as is. """
+    arguments, instances are used as is.
     
-    super().__init__(**kwargs)
+     Composite has a `flex` default setting of 
+     'LRTB', but you are free to change it as
+     you see fit. """
+
+    super().__init__()
+    self.pntr = ObjCInstance(self)   
     self._contained = Container(self, *view_classes)
     self.frame = frame
-    self.pntr = ObjCInstance(self)
+    self.flex = 'LRTB'
+    for key in kwargs:
+      setattr(self, key, kwargs[key])
     self.pntr.layer().setMasksToBounds_(False)
     
   def __getitem__(self, key):
@@ -84,10 +91,13 @@ class Composite(View):
     self.shadow_color = color
     self.shadow_radius = 5
     
+  def make_round(self):
+    self.corner_radius = min(self.width, self.height)/2
+    
     
 class Container():
   
-  layout_attributes = { 'bounds', 'center', 'flex', 'frame', 'height', 'hidden', 'name', 'size_to_fit', 'transform', 'width', 'x', 'y', 'pntr', 'masks_to_bounds', 'shadow_opacity', 'shadow_radius', 'shadow_offset', 'shadow_color', 'set_drop_shadow', }
+  layout_attributes = { 'bounds', 'center', 'flex', 'frame', 'height', 'hidden', 'name', 'size_to_fit', 'transform', 'width', 'x', 'y', 'pntr', 'masks_to_bounds', 'shadow_opacity', 'shadow_radius', 'shadow_offset', 'shadow_color', 'set_drop_shadow', 'round'}
   
   def __init__(self, bottom_view, *views):
     self.bottom_view = bottom_view
@@ -96,12 +106,12 @@ class Container():
     child_lookup = {}
     previous = bottom_view
     for view_spec in views:
-      if isinstance(view_spec, View):
-        v = view_spec
-      else:
-        v = view_spec()
+      # Class or instance is ok
+      v = view_spec if isinstance(view_spec, View) else view_spec()
       self.stack.append(v)
       previous.add_subview(v)
+      # Need to manage chain explicitly as some
+      # views have more than one subview
       child_lookup[previous] = v
       if not isinstance(previous, SelfLayout):
         def size_right(self):
@@ -110,7 +120,7 @@ class Container():
           self.width = child.width
           self.height = child.height
         def layout_right(self):
-          child = child_lookup[self] #self.subviews[0]
+          child = child_lookup[self]
           child.frame = self.bounds
           if hasattr(child, 'layout'):
             child.layout()
@@ -138,7 +148,7 @@ class SelfLayout(View):
   layouts in composites, i.e. will not use
   Composite-inserted size_to_fit and layout methods. """
     
-class Margins(SelfLayout):
+class MarginView(SelfLayout):
   """ View that insets contained view by given
   amount from every side.
   
@@ -153,8 +163,8 @@ class Margins(SelfLayout):
   
   def __init__(self, margin=None, **kwargs):
     super().__init__(**kwargs)
-    #self.touch_enabled = False
     self._margin = sn(top=5, right=5, bottom=5, left=5)
+    self.touch_enabled = False
     if margin:
       self.margin = margin
   
@@ -216,7 +226,7 @@ class Margins(SelfLayout):
       child.layout()
 
 
-class Blur(View):
+class BlurView(View):
   """ Applies a blurring effect to the content layered behind the view. """
   
   LIGHTER = 0
@@ -257,29 +267,150 @@ class Blur(View):
     if value != self._style:
       self._style = value
       self.setup_effect_view()
+
+
+class Chainable(Composite):
+  def __init__(self, *args, **kwargs):
+    chain_spec = self.spec()
+    super().__init__(*chain_spec, **kwargs)
+    self.setup()
+    
+  def spec(self):
+    return []
+    
+  def setup(self):
+    pass
+
+     
+# Flavors     
       
+class Semitransparent(Chainable):
+  def setup(self):
+    super().setup()
+    self.background_color = (1, 1, 1, 0.4)
+    
+    
+class Solid(Chainable):
+  def setup(self):
+    super().setup()
+    self.background_color = 'white'
+
+
+class Sized(Chainable):
+  def setup(self):
+    super().setup()
+    self.size_to_fit()
+      
+      
+class Rounded(Chainable):
+  def setup(self):
+    super().setup()
+    self.corner_radius = 5
+    
+      
+class Round(Chainable):
+  def setup(self):
+    super().setup()
+    self.make_round()
+    
+    
+class Shadowed(Chainable):
+  """ Black drop shadow """
+  def setup(self):
+    super().setup()
+    self.set_drop_shadow('darkgrey')
+  
+  
+# Stackers
+          
+class Blurred(Chainable):
+  def spec(self):
+    return [BlurView] + super().spec()
+      
+      
+class Margins(Chainable):
+  def spec(self):
+    return super().spec() + [MarginView]
+      
+class Clickable(Chainable):
+  def spec(self):
+    return [Button] + super().spec()
+
+class Editable(Chainable):
+  def spec(self):
+    return super().spec() + [TextField]
+
+# Mixed
+
+class DefaultLabel(Margins):
+  """ Center-aligned, multilined default label
+  with black text and 5 pt margins """
+  
+  def spec(self):
+    return super().spec() + [Label]
+    
+  def setup(self):
+    super().setup()
+    self.number_of_lines = 0
+    self.text_color = 'black'
+    self.alignment = ALIGN_CENTER
+      
+      
+# Derivatives
+      
+class SizedLabel(Sized, DefaultLabel):
+  """ Note that the order of inheritance matters. 
+  Last gets called first to set multiline 
+  operation, then the sizing. In opposite order,
+  sizing is done first, and multiline will 
+  initially have no effect. """
+    
+      
+class ShadowedLabel(Shadowed, DefaultLabel):
+  pass
+  
+      
+class SemitransparentLabel(Semitransparent, DefaultLabel):
+  pass
+    
+    
+class SizedSemitransparentLabel(Sized, SemitransparentLabel):
+  pass
+
+      
+class LabelButton(DefaultLabel, Clickable):
+  """ Turns the MarginLabel into a Button as well
+  """
+
+class SolidLabelButton(Solid, DefaultLabel, Clickable):
+  pass
+    
+    
+class SemitransparentLabelButton(Semitransparent, LabelButton):
+  pass
+
+        
+class RoundLabelButton(Round, LabelButton):
+  pass
+
+    
+class BlurRoundLabelButton(Blurred, RoundLabelButton):
+  pass
+
+
+class ContainedTextField(Editable, Margins): pass
 
 if __name__ == '__main__':
   import console
   
   v = ImageView()
   v.image = Image.named("IMG_0419.JPG")
-  #v.background_color = 'white'
   v.present('sheet')
   
   # Combine label with button
   
-  lbl_btn = Composite(Button, Label)
+  lbl_btn = SolidLabelButton(text = "#1 - Click me")
   lbl_btn.center = (v.width * 0.25, v.height * 0.25)
-  lbl_btn.flex = 'LRTB'
-  
-  lbl_btn.number_of_lines = 0
-  lbl_btn.text = "#1 - Click me\n(ugly without margins)"
-  lbl_btn.text_color = 'black'
-  lbl_btn.alignment = ALIGN_RIGHT
-  lbl_btn.background_color = 'lightgrey'
-  lbl_btn['Label'].border_color = 'black'
-  lbl_btn['Label'].border_width = 1
   def click_action(sender):
     console.hud_alert('Clicked', duration=0.5)
   lbl_btn.action = click_action 
@@ -288,41 +419,28 @@ if __name__ == '__main__':
   
   # Combine label with some niceties
   
-  lbl = Composite(Margins, Label)
-  lbl.number_of_lines = 0
-  lbl.text = '#2 - Size-to-fit label with margins and rounded corners'
-  lbl.margin = (5, 10)
-  lbl.corner_radius = 10
-  lbl.size_to_fit()
+  class FancyLabel(Sized, Rounded, Solid, DefaultLabel): pass
+  
+  lbl = FancyLabel(text = '#2 - Size-to-fit label with margins and rounded corners')
   lbl.center = (v.width * 0.75, v.height * 0.25)
-  lbl.flex = 'LRTB'     
-  lbl.text_color = 'black'
-  lbl.background_color = (1.0, 1.0, 1.0, 0.4)
 
   v.add_subview(lbl)
 
   # Text field with a rectangular border
 
-  fld = Composite(Margins, TextField)
+  fld = ContainedTextField(text='#3 - Editable')
   (fld.width, fld.height) = (150, 50)
   fld.center = (v.width * 0.25, v.height * 0.5)
-  fld.text = '#5 - Editable'
+  # TextField does not support size_to_fit
   fld.background_color = 'lightgrey'
   
   v.add_subview(fld)
   
   # Transformed composite
   
-  lbl = Composite(Margins, Label)
-  lbl.number_of_lines = 0
-  lbl.text = '#6 - Transformed'
-  lbl.margin = (5, 10)
-  lbl.corner_radius = 10
-  lbl.size_to_fit()
+  lbl = SizedSemitransparentLabel(text='#4 - Rotated semi-transparent composite')
+  #lbl.size_to_fit()
   lbl.center = (v.width * 0.75, v.height * 0.5)
-  lbl.flex = 'LRTB'     
-  lbl.text_color = 'black'
-  lbl.background_color = (1.0, 1.0, 1.0, 0.4)
 
   lbl.transform = Transform.rotation(1)
   
@@ -330,30 +448,19 @@ if __name__ == '__main__':
   
   # Drop shadow built in
   
-  shadow_lbl = Composite(Margins, Label)
-  shadow_lbl.number_of_lines = 0
-  shadow_lbl.text = '#3 - Label with drop shadow'
+  shadow_lbl = ShadowedLabel(text='#5 - Label with drop shadow')
   shadow_lbl.size_to_fit()
   shadow_lbl.center = (v.width * 0.25, v.height * 0.75)
-  shadow_lbl.flex = 'LRTB'     
   
-  shadow_lbl.text_color = 'black'
   shadow_lbl.background_color = '#F29C50'
-  shadow_lbl.set_drop_shadow('#D46247')
+  shadow_lbl.shadow_color = '#D46247'
 
   v.add_subview(shadow_lbl)
   
-  # Go fancy with BlurView
+  # Go for the blur
   
-  blur_lbl = Composite(Blur, Button, Label)
-  blur_lbl.number_of_lines = 0
-  blur_lbl.text = '#4\nBlur\nbutton'
-  blur_lbl.alignment = ALIGN_CENTER
+  blur_lbl = BlurRoundLabelButton(text= '#6 - Blur button', action=click_action)
   blur_lbl.center = (v.width * 0.75, v.height * 0.75)
-  blur_lbl.flex = 'LRTB' 
-  blur_lbl.text_color = 'black'
-  blur_lbl.corner_radius = blur_lbl.width/2
-  blur_lbl.action = click_action
 
   v.add_subview(blur_lbl)
 
