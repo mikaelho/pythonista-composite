@@ -41,12 +41,12 @@ An example of the second option:
 
 ## Chainable
 
-Chainable is intended to be subclassed in two main ways:
+Chainable makes Composite easier to use by supporting subclassing and composing new components through multiple inheritance. Chainable is intended to be subclassed in two main ways:
 
 * _Flavors_ have a `setup` method that sets some attributes for the view.
 * _Stackers_ have `spec` method that adds one or more view to a specific position in the composite stack.
 
-Example flavor-type classes included are:
+Sample flavor-type classes included are:
 
 * `Solid` - white background
 * `Semitransparent` - you guessed it
@@ -54,14 +54,14 @@ Example flavor-type classes included are:
 * `Round` - makes a square view into a round one
 * `Shadowed` - dark grey drop shadow
 
-Example stacker-type classes included are:
+Sample stacker-type classes included are:
 
 * `Clickable` - ui.Button included at the bottom of the stack
 * `Blurred` - background added tot the bottom of the stack
 * `Margins` - adds a margin-managing view on the top, with the expectation that something more will be added on top of it
 * `Editable` - ui.TextField added on top
 
-A subclass can of course be both a flavor and a stacker. The included examples are:
+A subclass can of course be both a flavor and a stacker. There is one sample included:
 
 * `DefaultLabel` - adds a Label to the stack and sets some default values such as black text and center-alignment.
 
