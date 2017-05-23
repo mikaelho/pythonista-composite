@@ -19,13 +19,39 @@ class Composite(View):
      you see fit. """
 
     super().__init__()
-    self.pntr = ObjCInstance(self)   
+    self.pntr = ObjCInstance(self)
+    if len(view_classes) == 0:
+      view_classes = self.spec()
     self._contained = Container(self, *view_classes)
     self.frame = frame
     self.flex = 'LRTB'
     for key in kwargs:
       setattr(self, key, kwargs[key])
     self.pntr.layer().setMasksToBounds_(False)
+    self.setup()
+    
+    # Ensure intended view gets the touch events 
+    # in the stack
+    # Right view is defined as the topmost view
+    # that has touch_sink attribute set as True
+    # No changes are made if no view has the
+    # attribute set
+    touch_sink_view = None
+    for view in self._contained.stack:
+      if getattr(view, 'touch_sink', False):
+        touch_sink_view = view
+    if touch_sink_view:
+      touch = True
+      for view in self._contained.stack:
+        view.touch_enabled = touch
+        if view == touch_sink_view:
+          touch = False
+          
+  def spec(self):
+    return []
+    
+  def setup(self):
+    pass
     
   def __getitem__(self, key):
     """ Stacked views are available by the name of the class, i.e. assumes that only one instance per class is needed in the composite. """
@@ -275,6 +301,23 @@ class Chainable(Composite):
     super().__init__(*chain_spec, **kwargs)
     self.setup()
     
+    # Ensure intended view gets the touch events 
+    # in the stack
+    # Right view is defined as the topmost view
+    # that has touch_sink attribute set as True
+    # No changes are made if no view has the
+    # attribute set
+    touch_sink_view = None
+    for view in self._contained.stack:
+      if getattr(view, 'touch_sink', False):
+        touch_sink_view = view
+    if touch_sink_view:
+      touch = True
+      for view in self._contained.stack:
+        view.touch_enabled = touch
+        if view == touch_sink_view:
+          touch = False
+          
   def spec(self):
     return []
     
@@ -283,66 +326,125 @@ class Chainable(Composite):
 
      
 # Flavors     
+
+class BaseFormat(Composite):
+  """ Base format for all derived classes.
+  Include only ui.View atrributes. """
+  def setup(self):
+    super().setup()
+
+    
+class TextFormat(BaseFormat):
+  """ Base format for all text-based views.
+  """
+  def setup(self):
+    super().setup()
+    self.font = ('<System>', 16)
+    self.text_color = 'black'
       
-class Semitransparent(Chainable):
+class Semitransparent(BaseFormat):
   def setup(self):
     super().setup()
     self.background_color = (1, 1, 1, 0.4)
     
     
-class Solid(Chainable):
+class Solid(BaseFormat):
   def setup(self):
     super().setup()
     self.background_color = 'white'
 
 
-class Sized(Chainable):
+class Sized(BaseFormat):
   def setup(self):
     super().setup()
     self.size_to_fit()
       
       
-class Rounded(Chainable):
+class Rounded(BaseFormat):
   def setup(self):
     super().setup()
     self.corner_radius = 5
     
       
-class Round(Chainable):
+class Round(BaseFormat):
   def setup(self):
     super().setup()
     self.make_round()
     
     
-class Shadowed(Chainable):
+class Shadowed(BaseFormat):
   """ Black drop shadow """
   def setup(self):
     super().setup()
     self.set_drop_shadow('darkgrey')
   
   
+class Rotated(BaseFormat):
+  """ Black drop shadow """
+  def setup(self):
+    super().setup()
+    self.transform = Transform.rotation(1)
+  
 # Stackers
           
-class Blurred(Chainable):
+class Blurred(BaseFormat):
   def spec(self):
     return [BlurView] + super().spec()
       
       
-class Margins(Chainable):
+class Margins(BaseFormat):
   def spec(self):
     return super().spec() + [MarginView]
       
-class Clickable(Chainable):
+class Clickable(BaseFormat):
   def spec(self):
     return [Button] + super().spec()
-
-class Editable(Chainable):
-  def spec(self):
-    return super().spec() + [TextField]
+    
+  def setup(self):
+    super().setup()
+    self['Button'].touch_sink = True
 
 # Mixed
 
-class DefaultLabel(Margins):
+class Editable(TextFormat):
+  """ TextView component that supports exiting
+  editing mode by swiping down (important for iPhones).
+  """
+  
+  def spec(self):
+    return super().spec() + [TextView]
+    
+  def setup(self):
+    super().setup()
+    tv = self['TextView']
+    tv.touch_sink = True
+    tv.delegate = self
+    tv.bounce = False
+    self.set_keyboard_dismiss_mode(tv)
+    
+  def textview_content_extralarge(self, textview):
+    """ Set textview content to be large enough so 
+    that scrolling is always enabled, and thus 
+    editing mode can be dismissed by swiping down.
+    """
+    textview.content_size = (textview.width, 2 * textview.height)
+    
+  def textview_did_start_editing(self, textview):
+    self.textview_content_extralarge(textview)
+    
+  def textview_did_change(self, textview):
+    self.textview_content_extralarge(textview)
+    
+  def textview_did_end_editing(self, textview):
+    textview.content_size = (textview.width, textview.height)
+    
+  @on_main_thread
+  def set_keyboard_dismiss_mode(self, view):
+    ObjCInstance(view).keyboardDismissMode = 1
+    # 0 - normal, 1 - on scroll, 2 - on scroll interactive
+       
+
+class DefaultLabel(Margins, TextFormat):
   """ Center-aligned, multilined default label
   with black text and 5 pt margins """
   
@@ -352,7 +454,6 @@ class DefaultLabel(Margins):
   def setup(self):
     super().setup()
     self.number_of_lines = 0
-    self.text_color = 'black'
     self.alignment = ALIGN_CENTER
       
       
@@ -374,7 +475,7 @@ class SemitransparentLabel(Semitransparent, DefaultLabel):
   pass
     
     
-class SizedSemitransparentLabel(Sized, SemitransparentLabel):
+class SizedSemitransparentRotatedLabel(Rotated, Sized, SemitransparentLabel):
   pass
 
       
@@ -398,7 +499,11 @@ class BlurRoundLabelButton(Blurred, RoundLabelButton):
   pass
 
 
-class ContainedTextField(Editable, Margins): pass
+class InPlaceEditable(Editable, Margins):
+  def setup(self):
+    super().setup()
+    self['TextView'].background_color = (1,1,1,0)
+
 
 if __name__ == '__main__':
   import console
@@ -428,21 +533,17 @@ if __name__ == '__main__':
 
   # Text field with a rectangular border
 
-  fld = ContainedTextField(text='#3 - Editable')
-  (fld.width, fld.height) = (150, 50)
+  fld = InPlaceEditable(text='#3 - Editable multiline')
+  (fld.width, fld.height) = (150, 100)
   fld.center = (v.width * 0.25, v.height * 0.5)
-  # TextField does not support size_to_fit
   fld.background_color = 'lightgrey'
   
   v.add_subview(fld)
   
   # Transformed composite
   
-  lbl = SizedSemitransparentLabel(text='#4 - Rotated semi-transparent composite')
-  #lbl.size_to_fit()
+  lbl = SizedSemitransparentRotatedLabel(text='#4 - Rotated semi-transparent composite')
   lbl.center = (v.width * 0.75, v.height * 0.5)
-
-  lbl.transform = Transform.rotation(1)
   
   v.add_subview(lbl)
   

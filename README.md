@@ -53,13 +53,14 @@ Sample flavor-type classes included are:
 * `Rounded` - 5 pt rounded corners
 * `Round` - makes a square view into a round one
 * `Shadowed` - dark grey drop shadow
+* `Rotated` - by a random 1 rad
 
 Sample stacker-type classes included are:
 
 * `Clickable` - ui.Button included at the bottom of the stack
 * `Blurred` - background added tot the bottom of the stack
 * `Margins` - adds a margin-managing view on the top, with the expectation that something more will be added on top of it
-* `Editable` - ui.TextField added on top
+* `Editable` - ui.TextView added on top, with an additional feature that you can get out of the editing mode by swiping down (useful on iPhones)
 
 A subclass can of course be both a flavor and a stacker. There is one sample included:
 
@@ -69,12 +70,24 @@ New UI classes are easy to create from the flavors and stackers simply by multic
 
 Here are the examples that you see if you run `composite.py`:
 
-1. `SolidLabelButton` - inherits from Solid, DefaultLabel (which has Margins), Clickable
-2. `FancyLabel` - inherits from Sized, Rounded, Semitransparent, DefaultLabel
-3. `ContainedTextField` - inherits from Editable, Margins
-4. `SizedSemitransparentLabel` - inherits from Sized, SemitransparentLabel (which in turn inherits from Semitransparent and DefaultLabel)
-5. `ShadowedLabel` - inherits from Shadowed and DefaultLabel
-6. `BlurRoundLabelButton` - inherits through many levels from DefaultLabel, Clickable, Round and Blurred
+1. `SolidLabelButton`
+  * Fixed-size Button with the text formatting options of a Label
+  * Inherits from Solid, DefaultLabel (which has Margins), Clickable
+2. `FancyLabel`
+  * Lots of little visual details on a variable-sized label
+  * Inherits from Sized, Rounded, Semitransparent, DefaultLabel
+3. `InplaceEditable`
+  * TextView that looks a bit like an `editable` `div` in HTML5
+  * Inherits from Editable, Margins
+4. `SizedSemitransparentRotatedLabel`
+  * Randomly rotated label to show that the whole stack is transformed
+  * Inherits from Rotated, Sized, SemitransparentLabel (which in turn inherits from Semitransparent and DefaultLabel)
+5. `ShadowedLabel`
+  * Demonstrates both setting a drop shadow and adjusting the shadow color
+  * Inherits from Shadowed and DefaultLabel
+6. `BlurRoundLabelButton`
+  * Blur and Round showcase as well as a demonstration of the many levels of multiple inheritance applied
+  * Inherits through many levels from DefaultLabel, Clickable, Round and Blurred
 
 ## Rolling your own
 
@@ -101,6 +114,8 @@ Then you can use your new class in multiple-inheritance combos, like:
 Note that this class does not need to implement anything, if the functionality brought in by the superclasses is sufficient.
 
 In case you have superclasses that bring in conflicting functionality, say both define background_color, or both want to be at the bottom of the stack, the winner is defined by the execution order of the classes. The way Chainable is set up, the inherited classes will execute from right to left. For example, in the code above, DefaultLabel must be later in the list, so that it defines multiline layout before Sized does the sizing.
+
+You can control which view gets touch events by setting a `touch_sink = True` attribute on it. The topmost view with this attribute will get the events.
 
 ## Custom views
 
