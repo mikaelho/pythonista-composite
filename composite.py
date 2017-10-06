@@ -1,6 +1,8 @@
 #coding: utf-8
 from ui import *
 from objc_util import *
+
+from functools import partial
 from types import MethodType as as_method
 from types import SimpleNamespace as sn
 import numbers
@@ -19,10 +21,10 @@ class Composite(View):
      you see fit. """
 
     super().__init__()
-    self.pntr = ObjCInstance(self)
+    object.__setattr__(self, 'pntr', ObjCInstance(self))
     if len(view_classes) == 0:
       view_classes = self.spec()
-    self._contained = Container(self, *view_classes)
+    object.__setattr__(self, '_contained', Container(self, *view_classes))
     self.frame = frame
     self.flex = 'LRTB'
     for key in kwargs:
@@ -59,14 +61,20 @@ class Composite(View):
     return self._contained.name_lookup[key]
     
   def __getattr__(self, key):
-    if key == '_contained' or key in Container.layout_attributes:
+    try:
       return object.__getattribute__(self, key)
-    return self._contained.get_attr(key)
+    except AttributeError:
+      return self._contained.get_attr(key)
     
   def __setattr__(self, key, value):
-    if key == '_contained' or key in Container.layout_attributes:
-      return object.__setattr__(self, key, value)
-    return self._contained.set_attr(key, value)
+    try:
+      if key in Container.layout_attributes or object.__getattr__(self, key):
+        return object.__setattr__(self, key, value)
+    except AttributeError:
+      try:
+        return self._contained.set_attr(key, value)
+      except AttributeError:
+        return object.__setattr__(self, key, value)
   
   @property 
   def masks_to_bounds(self):
@@ -118,12 +126,12 @@ class Composite(View):
     self.shadow_radius = 5
     
   def make_round(self):
-    self.corner_radius = min(self.width, self.height)/2
+    self.corner_radius = min(self.width, self.height)/2   
     
     
 class Container():
   
-  layout_attributes = { 'bounds', 'center', 'flex', 'frame', 'height', 'hidden', 'name', 'size_to_fit', 'transform', 'width', 'x', 'y', 'pntr', 'masks_to_bounds', 'shadow_opacity', 'shadow_radius', 'shadow_offset', 'shadow_color', 'set_drop_shadow', 'round'}
+  layout_attributes = { 'bounds', 'center', 'flex', 'frame', 'height', 'hidden', 'name', 'size_to_fit', 'transform', 'width', 'x', 'y' }
   
   def __init__(self, bottom_view, *views):
     self.bottom_view = bottom_view
@@ -323,7 +331,6 @@ class Chainable(Composite):
     
   def setup(self):
     pass
-
      
 # Flavors     
 
@@ -341,6 +348,13 @@ class TextFormat(BaseFormat):
     super().setup()
     self.font = ('<System>', 16)
     self.text_color = 'black'
+    
+
+class Multiline(BaseFormat):
+  """ Support multiple lines """
+  def setup(self):
+    super().setup()
+    self.number_of_lines = 0
       
 class Semitransparent(BaseFormat):
   def setup(self):
@@ -404,6 +418,38 @@ class Clickable(BaseFormat):
     super().setup()
     self['Button'].touch_sink = True
 
+
+class Notable(Composite):
+  
+  def highlight_positive(self, start_color='lightgreen', end_color='white'):
+    self.background_color = start_color
+    def animation():
+      self.background_color = end_color
+    animate(animation, duration=1)
+
+  def pulse_positive(self, start_color='lightgreen', end_color='white', duration=1.0):
+    self.background_color = end_color
+    def animation_up():
+      self.background_color = start_color
+    def animation_down():
+      self.background_color = end_color
+    def transition():
+      animate(animation_down, duration=duration/2)
+    animate(animation_up, duration=duration/2, completion=transition)
+    
+  def highlight_negative(self, start_color=(1.0, .63, .63), end_color='white'):
+    self.highlight_positive(start_color=start_color, end_color=end_color)
+  
+  def pulse_negative(self, start_color=(1.0, .63, .63), end_color='white', duration=1.0):
+    self.pulse_positive(start_color=start_color, end_color=end_color, duration=duration)
+  
+  def highlight_attention(self, start_color=(.57, .72, 1.0), end_color='white'):
+    self.highlight_positive(start_color=start_color, end_color=end_color)
+
+  def pulse_attention(self, start_color=(.57, .72, 1.0), end_color='white', duration=1.0):
+    self.pulse_positive(start_color=start_color, end_color=end_color, duration=duration)
+    
+    
 # Mixed
 
 class Editable(TextFormat):
@@ -524,12 +570,14 @@ if __name__ == '__main__':
   
   # Combine label with some niceties
   
-  class FancyLabel(Sized, Rounded, Solid, DefaultLabel): pass
+  class FancyLabel(Notable, Sized, Rounded, Solid, DefaultLabel): pass
   
   lbl = FancyLabel(text = '#2 - Size-to-fit label with margins and rounded corners')
   lbl.center = (v.width * 0.75, v.height * 0.25)
 
   v.add_subview(lbl)
+  
+  lbl.pulse_positive()
 
   # Text field with a rectangular border
 
