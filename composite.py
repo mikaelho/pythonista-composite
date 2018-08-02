@@ -63,8 +63,9 @@ class Composite(View):
   def __getattr__(self, key):
     try:
       return object.__getattribute__(self, key)
-    except AttributeError:
-      return self._contained.get_attr(key)
+    except AttributeError as e:
+      cont = object.__getattr__(self, '_contained')
+      return cont.get_attr(key)
     
   def __setattr__(self, key, value):
     try:
@@ -612,5 +613,4 @@ if __name__ == '__main__':
   blur_lbl.center = (v.width * 0.75, v.height * 0.75)
 
   v.add_subview(blur_lbl)
-
 
